@@ -1,1 +1,237 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #00d2ff;
+        }
+        
+        .server-card {
+            background: #16213e;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        
+        .server-card:hover {
+            border-color: #00d2ff;
+            transform: translateY(-2px);
+        }
+        
+        .server-info h3 {
+            margin-bottom: 5px;
+        }
+        
+        .server-stats {
+            color: #888;
+            font-size: 14px;
+        }
+        
+        .btn-select {
+            background: #00d2ff;
+            color: #1a1a2e;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: #16213e;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 90%;
+        }
+        
+        .modal-content h2 {
+            margin-bottom: 15px;
+            color: #00d2ff;
+        }
+        
+        .modal-content p {
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .btn-confirm {
+            background: #00ff88;
+            color: #1a1a2e;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .btn-cancel {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌐 Выберите сервер</h1>
+        
+        <div id="server-list"></div>
+        
+        <div id="confirm-modal" class="modal">
+            <div class="modal-content">
+                <h2>🤔 Подтверждение</h2>
+                <p id="server-info"></p>
+                <div class="buttons">
+                    <button onclick="confirmServer()" class="btn-confirm">✅ Да, этот</button>
+                    <button onclick="closeModal()" class="btn-cancel">❌ Отмена</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        
+        let selectedServer = null;
+        
+        // Твои сервера (добавь свои)
+        const servers = [
+            {
+                id: 'nl',
+                name: '🇳🇱 Нидерланды',
+                ping: '45-55',
+                load: '25%',
+                flag: 'nl'
+            },
+            {
+                id: 'de',
+                name: '🇩🇪 Германия',
+                ping: '50-60',
+                load: '35%',
+                flag: 'de'
+            },
+            {
+                id: 'us',
+                name: '🇺🇸 США',
+                ping: '120-130',
+                load: '40%',
+                flag: 'us'
+            }
+        ];
+        
+        // Отображаем сервера
+        function renderServers() {
+            const list = document.getElementById('server-list');
+            
+            servers.forEach(server => {
+                const card = document.createElement('div');
+                card.className = 'server-card';
+                card.innerHTML = `
+                    <div class="server-info">
+                        <h3>${server.name}</h3>
+                        <div class="server-stats">
+                            ⚡ Пинг: ${server.ping}ms | 📊 Загрузка: ${server.load}
+                        </div>
+                    </div>
+                    <button onclick="selectServer('${server.id}', '${server.name}')" class="btn-select">
+                        Выбрать
+                    </button>
+                `;
+                list.appendChild(card);
+            });
+        }
+        
+        // Выбор сервера
+        function selectServer(serverId, serverName) {
+            selectedServer = { id: serverId, name: serverName };
+            const modal = document.getElementById('confirm-modal');
+            const info = document.getElementById('server-info');
+            
+            info.textContent = `Вы выбрали: ${serverName}. Продолжить?`;
+            modal.style.display = 'flex';
+        }
+        
+        // Подтверждение
+        function confirmServer() {
+            if (!selectedServer) return;
+            
+            // Отправляем данные в бота
+            tg.sendData(JSON.stringify({
+                action: 'get_config',
+                server: selectedServer.id
+            }));
+            
+            // Показываем уведомление
+            tg.showPopup({
+                title: '✅ Успешно!',
+                message: 'Конфиг отправлен в чат!',
+                buttons: [{ type: 'ok' }]
+            });
+            
+            closeModal();
+        }
+        
+        // Закрытие модального окна
+        function closeModal() {
+            document.getElementById('confirm-modal').style.display = 'none';
+        }
+        
+        // Инициализация
+        tg.ready();
+        renderServers();
+    </script>
+</body>
+</html>
